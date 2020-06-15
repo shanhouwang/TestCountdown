@@ -1,11 +1,15 @@
 package com.devin.test;
 
+import android.content.Context;
 import android.content.res.Resources;
 import android.graphics.Color;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.Spannable;
 import android.text.SpannableString;
+import android.util.DisplayMetrics;
+import android.util.Log;
+import android.view.WindowManager;
 import android.widget.TextView;
 
 import java.text.ParseException;
@@ -16,25 +20,46 @@ public class Utils {
 
     public static Handler mHandler = new Handler(Looper.myLooper());
 
-    private static final String BEGIN = " 距结束 ";
+    private static String BEGIN = "距结束 ";
     private static final String D = " 天 ";
     private static final String H = " 时 ";
     private static final String M = " 分 ";
     private static final String S = " 秒 ";
+    private static volatile int mScreenWidthRemovePadding = 0;
 
     public static int dp2px(float dpValue) {
         return (int) (0.5f + dpValue * Resources.getSystem().getDisplayMetrics().density);
     }
 
     /**
-     * @param tv
-     * @param message 营销信息
-     * @param time    剩余时间（毫秒数）
+     * 获取屏幕的宽
+     *
+     * @param context
+     * @return
      */
-    public static synchronized void setMessageAndStartCountdown(final TextView tv, final String message, final long time) {
+    public static int getScreenWidth(Context context) {
+        WindowManager wm = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
+        DisplayMetrics dm = new DisplayMetrics();
+        wm.getDefaultDisplay().getMetrics(dm);
+        return dm.widthPixels;
+    }
+
+    private static int getScreenWidthRemovePadding(Context context) {
+        if (0 == mScreenWidthRemovePadding) {
+            mScreenWidthRemovePadding = getScreenWidth(context) - dp2px(30);
+        }
+        return mScreenWidthRemovePadding;
+    }
+
+    /**
+     * @param tv
+     * @param marketingInfo 营销信息
+     * @param time          剩余时间（毫秒数）
+     */
+    public static synchronized void setMarketingInfoAndStartCountdown(final TextView tv, final String marketingInfo, final long time) {
         final long[] t = {time};
         ThreadUtils.shut();
-        doIt(tv, message, t[0]);
+        doIt(tv, marketingInfo, t[0]);
         ThreadUtils.get(ThreadUtils.Type.SCHEDULED).scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
@@ -45,16 +70,25 @@ public class Utils {
                             ThreadUtils.shut();
                             return;
                         }
-                        doIt(tv, message, (t[0] = t[0] - 1000));
+                        doIt(tv, marketingInfo, (t[0] = t[0] - 1000));
                     }
                 });
             }
         }, 0, 1000, TimeUnit.MILLISECONDS);
     }
 
-    private static void doIt(TextView tv, String message, long time) {
-        String content = message + countDownTime(time);
-        SpannableString ss = new SpannableString(message + countDownTime(time));
+    private static void doIt(TextView tv, String marketingInfo, long time) {
+        String countDownTimeTxt = countDownTime(time);
+        marketingInfo = marketingInfo + " ";
+        float messageLength = tv.getPaint().measureText(marketingInfo);
+        if (messageLength < getScreenWidthRemovePadding(tv.getContext())) {
+            float countDownTimeTxtLength = tv.getPaint().measureText(countDownTimeTxt);
+            if ((messageLength + countDownTimeTxtLength) > getScreenWidthRemovePadding(tv.getContext())) {
+                countDownTimeTxt = countDownTimeTxt.replaceFirst(BEGIN, ("\n" + BEGIN));
+            }
+        }
+        String content = marketingInfo + countDownTimeTxt;
+        SpannableString ss = new SpannableString(content);
         int bgColor = Color.parseColor("#f8820d");
         int txtColor = Color.parseColor("#ffffff");
         int dp2dot5 = dp2px(2.5f);
@@ -96,9 +130,21 @@ public class Utils {
         if (overDay(time)) {
             sb.append((time / 1000 / 60 / 60 / 24) + D);
         }
-        sb.append((time / 1000 / 60 / 60) + H);
-        sb.append((time / 1000 / 60 % 60) + M);
-        sb.append((time / 1000 % 60) + S);
+        long hours = time / 1000 / 60 / 60;
+        if (hours < 10) {
+            sb.append("0");
+        }
+        sb.append(hours + H);
+        long minute = time / 1000 / 60 % 60;
+        if (minute < 10) {
+            sb.append("0");
+        }
+        sb.append(minute + M);
+        long seconds = time / 1000 % 60;
+        if (seconds < 10) {
+            sb.append("0");
+        }
+        sb.append(seconds + S);
         return sb.toString();
     }
 

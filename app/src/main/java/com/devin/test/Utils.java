@@ -8,7 +8,6 @@ import android.os.Looper;
 import android.text.Spannable;
 import android.text.SpannableString;
 import android.util.DisplayMetrics;
-import android.util.Log;
 import android.view.WindowManager;
 import android.widget.TextView;
 
@@ -78,14 +77,15 @@ public class Utils {
     }
 
     private static void doIt(TextView tv, String marketingInfo, long time) {
-        String countDownTimeTxt = countDownTime(time);
+        String countDownTimeTxt = countDownTimeOrigin(time);
         marketingInfo = marketingInfo + " ";
         float messageLength = tv.getPaint().measureText(marketingInfo);
-        if (messageLength < getScreenWidthRemovePadding(tv.getContext())) {
-            float countDownTimeTxtLength = tv.getPaint().measureText(countDownTimeTxt);
-            if ((messageLength + countDownTimeTxtLength) > getScreenWidthRemovePadding(tv.getContext())) {
-                countDownTimeTxt = countDownTimeTxt.replaceFirst(BEGIN, ("\n" + BEGIN));
-            }
+        float screenWidthRemovePadding = getScreenWidthRemovePadding(tv.getContext());
+        if (messageLength < screenWidthRemovePadding) {
+            countDownTimeTxt = countDownTimeDealByRegular(tv, countDownTimeTxt, messageLength);
+        } else {
+            float mod = messageLength % screenWidthRemovePadding;
+            countDownTimeTxt = countDownTimeDealByRegular(tv, countDownTimeTxt, mod);
         }
         String content = marketingInfo + countDownTimeTxt;
         SpannableString ss = new SpannableString(content);
@@ -110,6 +110,14 @@ public class Utils {
         tv.setText(ss);
     }
 
+    private static String countDownTimeDealByRegular(TextView tv, String countDownTimeTxt, float messageLength) {
+        float countDownTimeTxtLength = tv.getPaint().measureText(countDownTimeTxt);
+        if ((messageLength + countDownTimeTxtLength) > getScreenWidthRemovePadding(tv.getContext())) {
+            countDownTimeTxt = countDownTimeTxt.replaceFirst(BEGIN, ("\n" + BEGIN));
+        }
+        return countDownTimeTxt;
+    }
+
     // 获取两个时间相差分钟数
     public static long getTime(String oldTime, String newTime) throws ParseException {
         SimpleDateFormat df = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss.SSS");
@@ -124,7 +132,7 @@ public class Utils {
         return time > 24 * 60 * 60 * 1000;
     }
 
-    public static String countDownTime(long time) {
+    public static String countDownTimeOrigin(long time) {
         StringBuffer sb = new StringBuffer();
         sb.append(BEGIN);
         if (overDay(time)) {

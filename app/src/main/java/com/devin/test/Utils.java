@@ -138,7 +138,7 @@ public class Utils {
         if (overDay(time)) {
             sb.append((time / 1000 / 60 / 60 / 24) + D);
         }
-        long hours = time / 1000 / 60 / 60;
+        long hours = time / 1000 / 60 / 60 % 24;
         if (hours < 10) {
             sb.append("0");
         }

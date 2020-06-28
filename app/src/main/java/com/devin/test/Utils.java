@@ -106,7 +106,9 @@ public class Utils {
         ss.setSpan(new RadiusBackgroundSpan(bgColor, txtColor, dp2dot5, dp2), start, mIndex, Spannable.SPAN_INCLUSIVE_EXCLUSIVE);
         start = mIndex + M.length();
         int sIndex = content.indexOf(S);
-        ss.setSpan(new RadiusBackgroundSpan(bgColor, txtColor, dp2dot5, dp2), start, sIndex, Spannable.SPAN_INCLUSIVE_EXCLUSIVE);
+        if (-1 != sIndex) {
+            ss.setSpan(new RadiusBackgroundSpan(bgColor, txtColor, dp2dot5, dp2), start, sIndex, Spannable.SPAN_INCLUSIVE_EXCLUSIVE);
+        }
         tv.setText(ss);
     }
 
@@ -135,7 +137,8 @@ public class Utils {
     public static String countDownTimeOrigin(long time) {
         StringBuffer sb = new StringBuffer();
         sb.append(BEGIN);
-        if (overDay(time)) {
+        boolean isOverDay;
+        if (isOverDay = overDay(time)) {
             sb.append((time / 1000 / 60 / 60 / 24) + D);
         }
         long hours = time / 1000 / 60 / 60 % 24;
@@ -148,11 +151,13 @@ public class Utils {
             sb.append("0");
         }
         sb.append(minute + M);
-        long seconds = time / 1000 % 60;
-        if (seconds < 10) {
-            sb.append("0");
+        if (!isOverDay) {
+            long seconds = time / 1000 % 60;
+            if (seconds < 10) {
+                sb.append("0");
+            }
+            sb.append(seconds + S);
         }
-        sb.append(seconds + S);
         return sb.toString();
     }
 
